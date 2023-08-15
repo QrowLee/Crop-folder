@@ -1,0 +1,15 @@
+# Ignore all files and folders in input directory
+/input/*
+
+# Ignore all files and folders in output directory
+/output/*
+
+# Ignore all files and folders in cropinput directory
+/cropinput/*
+
+
+# Ignore all files and folders in output directory (again, if needed)
+/output/*
+
+# Ignore all files and folders in cropinput2 directory
+/cropinput2/*
