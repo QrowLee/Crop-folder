@@ -7,6 +7,8 @@
 # Ignore all files and folders in cropinput directory
 /cropinput/*
 
+# Ignore all files and folders in cropoutput directory
+/cropoutput/*
 
 # Ignore all files and folders in output directory (again, if needed)
 /output/*

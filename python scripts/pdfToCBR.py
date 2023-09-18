@@ -27,8 +27,8 @@ def pdf_to_cbr(pdf_path, output_cbr):
     os.rmdir(temp_dir)
 
 if __name__ == "__main__":
-    input_pdf = "red sonja and cub - Unknown.pdf"  # Replace with your input PDF file
-    output_cbr = "red sonja and cub - Unknown.cbr"  # Replace with the desired output CBR file
+    input_pdf = "input/slaine theking - Pat Mills.pdf"  # Replace with your input PDF file
+    output_cbr = "output/slaine theking - Pat Mills.cbr"  # Replace with the desired output CBR file
 
     pdf_to_cbr(input_pdf, output_cbr)
     print(f"CBR file '{output_cbr}' created successfully.")
