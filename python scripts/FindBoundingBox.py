@@ -8,99 +8,83 @@ import numpy as np
 
 
 
-def find_incremental_bounding_box(image, last_bbox, bacground_min_RGB, background_max_RGB, step_length, ):
-    left, top, right, bottom, _, _ = last_bbox
+def find_incremental_bounding_box(image, background_min_RGB, background_max_RGB, step_length, last_bbox=None):
+    start_time = time.time()
+    # if (last_bbox is None) or (last_bbox == (0,0,0,0,0,0)):
+    #     left, top, right, bottom = 0, 0, image.width, image.height
+    # else:
+    #     left, top, right, bottom, _, _ = last_bbox
+    left, top, right, bottom = 0, 0, image.width, image.height
     width, height = image.size
 
     # Extract columns of pixels for the borders
-    left_column = np.array([image.getpixel((left, y)) for y in range(bottom, top-1)])
-    right_column = np.array([image.getpixel((right-1, y)) for y in range(bottom, top-1)])
+    left_column = np.array([image.getpixel((left, y)) for y in range(top, bottom-1)])
+    right_column = np.array([image.getpixel((min(width-1,right-1), y)) for y in range(top, bottom-1)])
     top_row = np.array([image.getpixel((x, top)) for x in range(left, right-1)])
-    bottom_row = np.array([image.getpixel((x, bottom-1)) for x in range(left, right-1)])
+    bottom_row = np.array([image.getpixel((x, min(height-1, bottom-1))) for x in range(left, right-1)])
 
-    if ((np.any(np.array(right_column) <= bacground_min_RGB)) or (np.any(np.array(right_column) >= background_max_RGB))):
+    if np.all((right_column >= background_min_RGB) & (right_column <= background_max_RGB)):
 
-        right_grow_direction = 1
-    else:
         right_grow_direction = -1
-
-    if ((np.any(np.array(left_column) <= bacground_min_RGB)) or (np.any(np.array(left_column) >= background_max_RGB))):
-
-        left_grow_direction = -1
     else:
+        right_grow_direction = 1
+
+    if np.all((left_column >= background_min_RGB) & (left_column <= background_max_RGB)):
+
         left_grow_direction = 1
-
-    if ((np.any(np.array(top_row) <= bacground_min_RGB)) or (np.any(np.array(top_row) >= background_max_RGB))):
-
-        top_grow_direction = -1
     else:
+        left_grow_direction = -1
+
+    if np.all((top_row >= background_min_RGB) & (top_row <= background_max_RGB)):
+
         top_grow_direction = 1
-
-    if ((np.any(np.array(bottom_row) <= bacground_min_RGB)) or (np.any(np.array(bottom_row) >= background_max_RGB))):
-        
-        bottom_grow_direction = 1
     else:
-        bottom_grow_direction = -1
+        top_grow_direction = -1
 
-    while right >= 0 & right <= width+1:
-        right_column = np.array([image.getpixel((right-1, y)) for y in range(bottom, top-1)])
-        not_background = np.any((right_column <= bacground_min_RGB) | (right_column >= background_max_RGB))
-        if (not_background & right_grow_direction == -1) or ((not not_background) & right_grow_direction == 1) :
-            break
+    if np.all((bottom_row>= background_min_RGB) & (bottom_row <= background_max_RGB)):
+        
+        bottom_grow_direction = -1
+    else:
+        bottom_grow_direction = 1
+
+    while right >= 0 and right <= width:
+        right_column = np.array([image.getpixel((right-1, y)) for y in range(top, bottom-1)])
+        background = np.all((right_column >= background_min_RGB) & (right_column <= background_max_RGB))
+        if (right_grow_direction == 1 & background) or (right_grow_direction == -1 and not background):
+            break                               
         right += step_length * right_grow_direction
 
-    while left >= 0 and left <= width:
-        left_column = np.array([image.getpixel((left, y)) for y in range(bottom, top-1)])
-        not_background = np.any((left_column <= bacground_min_RGB) | (left_column >= background_max_RGB))
-        if (not_background and left_grow_direction == 1) or ((not not_background) and left_grow_direction == -1):
+    while left >= 0 and left < width:
+        left_column = np.array([image.getpixel((left, y)) for y in range(top, bottom-1)])
+        background = np.all((left_column >= background_min_RGB) & (left_column <= background_max_RGB))
+        if (left_grow_direction == -1 and background) or (left_grow_direction == 1 and not background):
             break
         left += step_length * left_grow_direction
 
-
-    while top >= 0 and top <= height:
+    while top >= 0 and top < height:
         top_row = np.array([image.getpixel((x, top-1)) for x in range(left, right-1)])
-        not_background = np.any((top_row <= bacground_min_RGB) | (top_row >= background_max_RGB))
-        if (not_background and top_grow_direction == 1) or ((not not_background) and top_grow_direction == -1):
+        background = np.all((top_row >= background_min_RGB) & (top_row <= background_max_RGB))
+        if (top_grow_direction == -1 and background) or (top_grow_direction == 1 and not background):
             break
         top += step_length * top_grow_direction
 
-    while bottom >= 0 and bottom <= height:
-        bottom_row = np.array([image.getpixel((x, bottom)) for x in range(left, right-1)])
-        not_background = np.any((bottom_row <= bacground_min_RGB) | (bottom_row >= background_max_RGB))
-        if (not_background and bottom_grow_direction == -1) or ((not not_background) and bottom_grow_direction == 1):
+    while bottom > 0 and bottom <= height:
+        bottom_row = np.array([image.getpixel((x, bottom-1)) for x in range(left, right-1)])
+        background = np.all((bottom_row >= background_min_RGB) & (bottom_row <= background_max_RGB))
+        if (bottom_grow_direction == 1 and background) or (bottom_grow_direction == -1 and not background):
             break
         bottom += step_length * bottom_grow_direction
 
 
     new_width = right - left
     new_height = bottom - top
+    print ("Time:", time.time() - start_time)
     print("Left:", left)
-    print("Bottom:", bottom)
-    print("Right:", right)
     print("Top:", top)
+    print("Right:", right)
+    print("Bottom:", bottom)
     print("New Width:", new_width)
     print("New Height:", new_height)
-
-    return left, top, right, bottom, new_width, new_height
-
-
-
-def find_smallest_bounding_box(image, bacground_min_RGB, background_max_RGB):
-    width, height = image.size
-    left, top, right, bottom = 0, 0, width, height
-
-    # Scan each pixel to find the bounding box
-    for x in range(width):
-        for y in range(height):
-            pixel = image.getpixel((x, y))
-            if ((np.any(np.array(pixel) <= bacground_min_RGB)) or (np.any(np.array(pixel) >= background_max_RGB))):
-                left = min(left, x)
-                top = min(top, y)
-                right = max(right, x)
-                bottom = max(bottom, y)
-
-    new_width = right - left + 1
-    new_height = bottom - top + 1
 
     return left, top, right, bottom, new_width, new_height
 
@@ -114,7 +98,7 @@ def save_resized_image(image, image_save, last_bbox):
     resized_image = cropped_image.resize((new_width, new_height))
     resized_image.save(image_save)
 
-def save_multiple(src_path, save_path, startfile, endfile):
+def save_multiple(src_path, save_path, startfile, endfile, background_min_RGB, background_max_RGB, step_length):
 
     files = os.listdir(src_path)
 
@@ -155,10 +139,29 @@ def save_multiple(src_path, save_path, startfile, endfile):
             print(f"Error opening image: {image_path}")
             continue
 
-        if last_bbox == (0, 0, 0, 0, 0, 0):
-            last_bbox = find_smallest_bounding_box(image, threshold=250)
-        else:
-            last_bbox = find_incremental_bounding_box(image, last_bbox, threshold=250, step_length= 1)
+
+        last_bbox = find_incremental_bounding_box(image, background_min_RGB, background_max_RGB, step_length, last_bbox)
+        # counter+=1
+        # last_bbox = find_incremental_bounding_box(image, background_min_RGB, background_max_RGB, step_length, last_bbox)
+        # counter+=1
+        # last_bbox = find_incremental_bounding_box(image, background_min_RGB, background_max_RGB, step_length, last_bbox)
+        # counter+=1
+        # last_bbox = find_incremental_bounding_box(image, background_min_RGB, background_max_RGB, step_length, last_bbox)
+        # counter+=1
+        # last_bbox = find_incremental_bounding_box(image, background_min_RGB, background_max_RGB, step_length, last_bbox)
+        # counter+=1
+        # last_bbox = find_incremental_bounding_box(image, background_min_RGB, background_max_RGB, step_length, last_bbox)
+        # counter+=1
+        # last_bbox = find_incremental_bounding_box(image, background_min_RGB, background_max_RGB, step_length, last_bbox)
+        # counter+=1
+        # last_bbox = find_incremental_bounding_box(image, background_min_RGB, background_max_RGB, step_length, last_bbox)
+        # counter+=1
+        # last_bbox = find_incremental_bounding_box(image, background_min_RGB, background_max_RGB, step_length, last_bbox)
+        # counter+=1
+        # last_bbox = find_incremental_bounding_box(image, background_min_RGB, background_max_RGB, step_length, last_bbox)
+        # counter+=1
+        # last_bbox = find_incremental_bounding_box(image, background_min_RGB, background_max_RGB, step_length, last_bbox)
+        # counter+=1
 
         print(f"bbox:{counter} = {last_bbox}")
         save_resized_image(image, image_save, last_bbox)
@@ -166,52 +169,22 @@ def save_multiple(src_path, save_path, startfile, endfile):
         if counter == endfile:
             break
 
-def print_filenames():
-    import os
 
-    src_path = "cropinput"
-
-    files = os.listdir(src_path)
-
-    for filename in files:
-        _, file_extension = os.path.splitext(filename)
-        if file_extension.lower() in {".jpg", ".jpeg", ".png"}:
-            print(filename)
-
-
-
-
-def save_single(src_path,filename, save_path) :
+def save_single(src_path,filename, save_path, background_min_RGB, background_max_RGB, step_length) :
 
     image = Image.open(src_path + filename)
 
     left, top, right, bottom = 0, 0, image.size[0], image.size[1]
-    last_bbox = find_incremental_bounding_box(image,last_bbox=(left, top, right, bottom, 1284, 2009), bacground_min_RGB=250,background_max_RGB=300, step_length=1)
+    last_bbox = (left, top, right, bottom, 1284, 2009)
+    last_bbox = find_incremental_bounding_box(image, background_min_RGB, background_max_RGB, step_length)
 
     image_save = save_path + filename
 
     save_resized_image(image, image_save, last_bbox)
 
-def compare(src_path,filename):
-
-    image = Image.open(src_path + filename)
-
-    start_time = time.time()
-    last_bbox = find_incremental_bounding_box(image,last_bbox=(0, 0, 0, 0, 0, 0), bacground_min_RGB=250,background_max_RGB=300, step_length=1)
-    end_time = time.time()
-    print(f"find_borders elapsed time: {end_time - start_time} seconds")
-    print("incremental Bounding Box:", last_bbox)
-
-
-    start_time = time.time()
-    last_bbox = find_smallest_bounding_box(image, bacground_min_RGB=250,background_max_RGB=300)
-    end_time = time.time()
-    print(f"find_borders elapsed time: {end_time - start_time} seconds")
-    print("smallest Bounding Box:", last_bbox)
-
 
 if __name__ == "__main__":
-    save_single("cropinput/", "page_006.jpg", "testimage")
+    save_multiple("cropinput/", "cropoutput/", startfile=0, endfile=300, background_min_RGB=250, background_max_RGB=255, step_length=1)
     # compare("cropinput/","page_007.jpg")
     # image = Image.open("cropinput/page_006.jpg")
     # save_resized_image(image, "testimage/page_006.jpg", (120, 344, 2087, 2695, 1968, 2352))
